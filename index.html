@@ -203,70 +203,11 @@ html,body{min-height:100%;background:var(--navy);color:var(--white);font-family:
 </div>
 
 <script>
-const MASTER_KEY   = '$2a$10$YdbExlb2BaD00NW/hIKjcOXwJR/0mx3D/.vsZ62yW6gUFVqNlUQyO';
-const REG_BIN_URL  = 'https://api.jsonbin.io/v3/b/6a4b4286da38895dfe335fe9/latest';
-const JSONBIN_ID   = '6a6c8500f5f4af5e29d9ac40';
-const BIN_URL      = `https://api.jsonbin.io/v3/b/${JSONBIN_ID}`;
-const HEADERS      = {'Content-Type':'application/json','X-Master-Key':MASTER_KEY,'X-Bin-Meta':'false'};
-
-let STUDENTS = [];
-
-async function loadStudents() {
-  try {
-    const res = await fetch(REG_BIN_URL, {
-      headers: {'X-Master-Key': MASTER_KEY, 'X-Bin-Meta': 'false'}
-    });
-    const data = await res.json();
-    const reg = data.registration || data;
-    const CLIENT_LABELS = {
-      eccb: 'ECCB / Credit Bureau',
-      scaspa: 'SCASPA',
-      outsource: 'Outsource Dev Studio',
-      ird: 'IRD Grenada',
-      cub: 'Caribbean Union Bank',
-      irdanguilla: 'IRD Anguilla'
-    };
-    // Build a map of name -> {country, clients[], clientLabels[]}
-    // so students in multiple teams get all their clients stored
-    const studentMap = {};
-    for (const [clientKey, info] of Object.entries(reg)) {
-      if (!info.members) continue;
-      for (const m of info.members) {
-        const name = (m.fn + ' ' + m.ln).trim();
-        const normName = name.split(' ').map(w =>
-          w.length > 0 ? w[0].toUpperCase() + w.slice(1) : w
-        ).join(' ');
-        if (!studentMap[normName]) {
-          studentMap[normName] = {
-            name: normName,
-            country: m.country || '',
-            clients: [],
-            clientLabels: []
-          };
-        }
-        const label = CLIENT_LABELS[clientKey] || clientKey;
-        if (!studentMap[normName].clients.includes(clientKey)) {
-          studentMap[normName].clients.push(clientKey);
-          studentMap[normName].clientLabels.push(label);
-        }
-      }
-    }
-    const students = Object.values(studentMap)
-      .sort((a, b) => a.name.localeCompare(b.name));
-    STUDENTS = students;
-    document.getElementById('name-input').placeholder =
-      `Start typing your name… (${STUDENTS.length} registered students)`;
-  } catch (err) {
-    document.getElementById('name-input').placeholder =
-      'Could not load names — check your connection';
-    console.error('Failed to load student list:', err);
-  }
-}
-
-let selectedStudent = null;
+const SERVER = 'https://eccul2test.tekii.org';
 let portfolios = {};
-let pendingDeleteId = null;
+let selectedStudent = null;
 let editingId = null;
+let pendingDeleteId = null;
 
 // ── AUTOCOMPLETE ──────────────────────────────────────────
 const nameInput = document.getElementById('name-input');
@@ -280,10 +221,10 @@ nameInput.addEventListener('input', () => {
   if (!q) { acList.classList.remove('show'); selectedStudent = null; return; }
   const matches = STUDENTS.filter(s => s.name.toLowerCase().includes(q));
   if (!matches.length) { acList.classList.remove('show'); return; }
-  matches.forEach((s, i) => {
+  matches.forEach((s) => {
     const d = document.createElement('div');
     d.className = 'ac-item';
-    d.innerHTML = `${s.name} <span class="ac-country">${s.country}</span><span class="ac-client">${s.clientLabels.join(', ')}</span>`;
+    d.innerHTML = s.name + ' <span class="ac-country">' + s.country + '</span><span class="ac-client">' + s.clientLabels.join(', ') + '</span>';
     d.addEventListener('mousedown', e => { e.preventDefault(); selectStudent(s); });
     acList.appendChild(d);
   });
@@ -313,40 +254,6 @@ function selectStudent(s) {
   acList.classList.remove('show');
 }
 
-// ── DATA ──────────────────────────────────────────────────
-async function loadData() {
-  try {
-    const res = await fetch(BIN_URL + '/latest', {headers: {'X-Master-Key': MASTER_KEY, 'X-Bin-Meta': 'false'}});
-    if (!res.ok) throw new Error('empty');
-    portfolios = await res.json();
-    if (typeof portfolios !== 'object' || Array.isArray(portfolios)) portfolios = {};
-  } catch { portfolios = {}; }
-  renderEntries();
-}
-
-async function saveData() {
-  // Re-fetch latest before writing to prevent race condition overwriting other submissions
-  try {
-    const latest = await fetch(BIN_URL + '/latest', {
-      headers: {'X-Master-Key': MASTER_KEY, 'X-Bin-Meta': 'false'}
-    });
-    if (latest.ok) {
-      const latestData = await latest.json();
-      if (typeof latestData === 'object' && !Array.isArray(latestData)) {
-        // Merge: latest bin wins for other keys, our changes win for our key
-        portfolios = Object.assign({}, latestData, portfolios);
-      }
-    }
-  } catch { /* proceed with what we have */ }
-
-  await fetch(BIN_URL, {
-    method: 'PUT',
-    headers: HEADERS,
-    body: JSON.stringify(portfolios)
-  });
-}
-
-// ── SUBMIT ────────────────────────────────────────────────
 // ── URL VALIDATOR ─────────────────────────────────────────
 function isValidEmbedUrl(url) {
   const u = url.trim();
@@ -357,41 +264,45 @@ function isValidEmbedUrl(url) {
 document.getElementById('canva-url').addEventListener('input', function() {
   const url = this.value.trim();
   const statusEl = document.getElementById('url-status');
-  const btn = document.getElementById('submit-btn');
-  if (!url) {
-    statusEl.style.display = 'none';
-    return;
-  }
+  if (!url) { statusEl.style.display = 'none'; return; }
   if (isValidEmbedUrl(url)) {
     statusEl.style.display = 'block';
     statusEl.style.background = 'rgba(0,201,177,.1)';
     statusEl.style.border = '1px solid rgba(0,201,177,.3)';
     statusEl.style.color = 'var(--teal)';
-    statusEl.textContent = '✓ Valid Canva public view link';
+    statusEl.textContent = '\u2713 Valid Canva public view link';
   } else {
     statusEl.style.display = 'block';
     statusEl.style.background = 'rgba(232,87,58,.1)';
     statusEl.style.border = '1px solid rgba(232,87,58,.3)';
     statusEl.style.color = 'var(--coral)';
-    if (url.includes('canva.link')) {
-      // canva.link is valid — this branch won't be reached for valid links
-      statusEl.textContent = '✗ This doesn\'t look like a valid Canva link.';
-    } else if (url.includes('canva.com') && !url.includes('/view')) {
-      statusEl.textContent = '✗ Almost! Make sure the link ends in /view';
+    if (url.includes('canva.com') && !url.includes('/view')) {
+      statusEl.textContent = "\u2717 Almost! Make sure the link ends in /view";
     } else if (url.includes('canva.com')) {
-      statusEl.textContent = "✗ This doesn't look like a Canva URL. It must contain canva.com/design/";
+      statusEl.textContent = "\u2717 This doesn't look like a Canva URL. It must contain canva.com/design/";
     } else {
-      statusEl.textContent = "✗ This doesn't look like a Canva URL.";
+      statusEl.textContent = "\u2717 This doesn't look like a Canva URL.";
     }
   }
 });
 
+// ── LOAD PORTFOLIO DATA FROM SERVER ──────────────────────
+async function loadData() {
+  try {
+    const res = await fetch(SERVER + '/portfolio');
+    if (!res.ok) throw new Error('failed');
+    portfolios = await res.json();
+    if (typeof portfolios !== 'object' || Array.isArray(portfolios)) portfolios = {};
+  } catch { portfolios = {}; }
+  renderEntries();
+}
+
+// ── SUBMIT ────────────────────────────────────────────────
 async function submitPortfolio() {
   const url = document.getElementById('canva-url').value.trim();
   const pin = document.getElementById('pin-input').value.trim();
-
   if (!selectedStudent) return showAlert('Please select your name from the list.', 'error');
-  if (!isValidEmbedUrl(url)) return showAlert('Please paste your Canva public link — it should start with canva.link or canva.com/design', 'error');
+  if (!isValidEmbedUrl(url)) return showAlert('Please paste your Canva public link.', 'error');
   if (!/^\d{4}$/.test(pin)) return showAlert('PIN must be exactly 4 digits.', 'error');
 
   const id = selectedStudent.name.toLowerCase().replace(/\s+/g,'-').replace(/[^a-z0-9-]/g,'');
@@ -399,29 +310,40 @@ async function submitPortfolio() {
   if (portfolios[id] && !editingId) {
     return showAlert('A portfolio already exists for this name. Use the Edit button to update it.', 'error');
   }
-
-  if (editingId && portfolios[editingId]) {
-    if (portfolios[editingId].pin !== pin) return showAlert('Incorrect PIN.', 'error');
+  if (editingId && portfolios[editingId] && portfolios[editingId].pin !== pin) {
+    return showAlert('Incorrect PIN.', 'error');
   }
 
   const btn = document.getElementById('submit-btn');
-  btn.disabled = true; btn.textContent = 'SAVING…';
+  btn.disabled = true; btn.textContent = 'SAVING\u2026';
 
-  portfolios[id] = {
-    name: selectedStudent.name,
-    country: selectedStudent.country,
-    clients: selectedStudent.clients,
-    clientLabels: selectedStudent.clientLabels,
-    url: url,
-    pin: pin,
-    submitted: Date.now()
-  };
-
-  await saveData();
-  btn.disabled = false; btn.textContent = 'SAVE PORTFOLIO';
-  editingId = null;
-  // Redirect to gallery — ?submitted=1 triggers the welcome banner
-  window.location.href = 'https://enoete.github.io/eccucamp_26_portfolios/?submitted=1';
+  try {
+    const entry = {
+      id,
+      name: selectedStudent.name,
+      country: selectedStudent.country,
+      clients: selectedStudent.clients,
+      clientLabels: selectedStudent.clientLabels,
+      url,
+      pin,
+      submitted: Date.now()
+    };
+    const res = await fetch(SERVER + '/portfolio', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(entry)
+    });
+    if (!res.ok) { const err = await res.json(); throw new Error(err.error || 'Save failed'); }
+    btn.disabled = false; btn.textContent = 'SAVE PORTFOLIO';
+    editingId = null;
+    document.getElementById('canva-url').value = '';
+    document.getElementById('pin-input').value = '';
+    nameInput.value = ''; selectedStudent = null;
+    window.location.href = 'https://enoete.github.io/eccucamp_26_portfolios/?submitted=1';
+  } catch(e) {
+    btn.disabled = false; btn.textContent = 'SAVE PORTFOLIO';
+    showAlert('Error saving: ' + e.message, 'error');
+  }
 }
 
 // ── RENDER ENTRIES ────────────────────────────────────────
@@ -432,25 +354,27 @@ function renderEntries() {
   if (!entries.length) { section.style.display = 'none'; return; }
   section.style.display = 'block';
   list.innerHTML = '';
-  entries.sort((a,b) => a[1].name.localeCompare(b[1].name)).forEach(([id, p]) => {
+  entries.sort((a,b) => {
+    const lastA = a[1].name.trim().split(' ').pop();
+    const lastB = b[1].name.trim().split(' ').pop();
+    return lastA.localeCompare(lastB);
+  }).forEach(([id, p]) => {
     const initials = p.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+    const labels = p.clientLabels || [p.clientLabel];
     const div = document.createElement('div');
     div.className = 'entry';
-    div.innerHTML = `
-      <div class="entry-avatar">${initials}</div>
-      <div class="entry-info">
-        <div class="entry-name">${p.name}</div>
-        <div class="entry-meta">${p.country}</div>
-        <a class="entry-link" href="${p.url}" target="_blank">${p.url.replace('https://','')}</a>
-        <div class="entry-pills">
-          ${(p.clientLabels || [p.clientLabel]).map(l => `<span class="epill ep-client">${l}</span>`).join('')}
-        </div>
-      </div>
-      <div class="entry-actions">
-        <button class="act-btn act-edit" onclick="startEdit('${id}')">Edit</button>
-        <button class="act-btn act-del" onclick="startDelete('${id}')">Delete</button>
-      </div>
-    `;
+    div.innerHTML =
+      '<div class="entry-avatar">' + initials + '</div>' +
+      '<div class="entry-info">' +
+        '<div class="entry-name">' + p.name + '</div>' +
+        '<div class="entry-meta">' + p.country + '</div>' +
+        '<a class="entry-link" href="' + p.url + '" target="_blank">' + p.url.replace('https://','') + '</a>' +
+        '<div class="entry-pills">' + labels.map(l => '<span class="epill ep-client">' + l + '</span>').join('') + '</div>' +
+      '</div>' +
+      '<div class="entry-actions">' +
+        '<button class="act-btn act-edit" onclick="startEdit(\'' + id + '\')">Edit</button>' +
+        '<button class="act-btn act-del" onclick="startDelete(\'' + id + '\')">Delete</button>' +
+      '</div>';
     list.appendChild(div);
   });
 }
@@ -466,7 +390,7 @@ function startEdit(id) {
   document.getElementById('pin-input').value = '';
   document.getElementById('pin-input').placeholder = 'Enter your PIN to confirm edit';
   window.scrollTo({top:0,behavior:'smooth'});
-  showAlert('Editing your portfolio — update the link and enter your PIN, then save.', 'success');
+  showAlert('Editing — update the link and enter your PIN, then save.', 'success');
 }
 
 // ── DELETE ────────────────────────────────────────────────
@@ -481,26 +405,77 @@ function closeModal() {
 }
 async function confirmDelete() {
   const pin = document.getElementById('modal-pin').value.trim();
-  const p = portfolios[pendingDeleteId];
-  if (!p) return closeModal();
-  if (p.pin !== pin) {
-    document.getElementById('modal-pin').style.borderColor = '#E8573A';
-    setTimeout(() => document.getElementById('modal-pin').style.borderColor = '', 1000);
-    return;
+  if (!pendingDeleteId) return closeModal();
+  try {
+    const res = await fetch(SERVER + '/portfolio/' + pendingDeleteId, {
+      method: 'DELETE',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ pin })
+    });
+    if (!res.ok) {
+      document.getElementById('modal-pin').style.borderColor = '#E8573A';
+      setTimeout(() => document.getElementById('modal-pin').style.borderColor = '', 1000);
+      return;
+    }
+    closeModal();
+    showAlert('Portfolio deleted.', 'error');
+    await loadData();
+  } catch(e) {
+    closeModal();
+    showAlert('Error: ' + e.message, 'error');
   }
-  delete portfolios[pendingDeleteId];
-  await saveData();
-  closeModal();
-  showAlert('Portfolio deleted.', 'error');
-  renderEntries();
 }
 
 // ── ALERT ─────────────────────────────────────────────────
 function showAlert(msg, type) {
   const el = document.getElementById('alert');
   el.textContent = msg;
-  el.className = `alert ${type} show`;
+  el.className = 'alert ' + type + ' show';
   setTimeout(() => el.classList.remove('show'), 4000);
+}
+
+// ── LOAD STUDENTS FROM REGISTRATION BIN ──────────────────
+const MASTER_KEY  = '$2a$10$YdbExlb2BaD00NW/hIKjcOXwJR/0mx3D/.vsZ62yW6gUFVqNlUQyO';
+const REG_BIN_URL = 'https://api.jsonbin.io/v3/b/6a4b4286da38895dfe335fe9/latest';
+let STUDENTS = [];
+
+async function loadStudents() {
+  try {
+    const res = await fetch(REG_BIN_URL, {
+      headers: {'X-Master-Key': MASTER_KEY, 'X-Bin-Meta': 'false'}
+    });
+    const data = await res.json();
+    const reg = data.registration || data;
+    const CLIENT_LABELS = {
+      eccb: 'ECCB / Credit Bureau', scaspa: 'SCASPA',
+      outsource: 'Outsource Dev Studio', ird: 'IRD Grenada',
+      cub: 'Caribbean Union Bank', irdanguilla: 'IRD Anguilla'
+    };
+    const studentMap = {};
+    for (const [clientKey, info] of Object.entries(reg)) {
+      if (!info.members) continue;
+      for (const m of info.members) {
+        const name = (m.fn + ' ' + m.ln).trim();
+        const normName = name.split(' ').map(w => w.length > 0 ? w[0].toUpperCase() + w.slice(1) : w).join(' ');
+        if (!studentMap[normName]) {
+          studentMap[normName] = { name: normName, country: m.country || '', clients: [], clientLabels: [] };
+        }
+        const label = CLIENT_LABELS[clientKey] || clientKey;
+        if (!studentMap[normName].clients.includes(clientKey)) {
+          studentMap[normName].clients.push(clientKey);
+          studentMap[normName].clientLabels.push(label);
+        }
+      }
+    }
+    STUDENTS = Object.values(studentMap).sort((a,b) => {
+      const lastA = a.name.trim().split(' ').pop();
+      const lastB = b.name.trim().split(' ').pop();
+      return lastA.localeCompare(lastB);
+    });
+    document.getElementById('name-input').placeholder = 'Start typing your name\u2026 (' + STUDENTS.length + ' registered students)';
+  } catch {
+    document.getElementById('name-input').placeholder = 'Could not load names \u2014 check your connection';
+  }
 }
 
 loadStudents();

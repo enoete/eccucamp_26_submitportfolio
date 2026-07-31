@@ -152,13 +152,15 @@ html,body{min-height:100%;background:var(--navy);color:var(--white);font-family:
     </div>
 
     <div class="field">
-      <label>Canva portfolio link</label>
-      <input type="url" id="canva-url" placeholder="https://www.canva.com/design/…"/>
+      <label>Canva public view link</label>
+      <input type="url" id="canva-url" placeholder="https://canva.link/xxxxxxxxxx"/>
       <div class="hint">
-        ⚠️ You must use the <strong style="color:var(--teal)">full Canva URL</strong>, not a shortlink.<br><br>
-        In Canva: <strong>Share → Copy link</strong> — it must look like:<br>
+        In Canva: click <strong>Share</strong> → look for the green
+        <strong style="color:var(--teal)">Live · Public link</strong> →
+        click it → click <strong>Copy</strong>.<br><br>
+        The link will look like:<br>
         <code style="color:var(--teal);font-size:10px;word-break:break-all">
-        https://www.canva.com/design/DAxxxxxx/your-title/view</code>
+        https://canva.link/xxxxxxxxxx</code>
       </div>
       <div id="url-status" style="margin-top:8px;font-size:12px;display:none;
         padding:8px 12px;border-radius:6px;font-family:var(--fm);letter-spacing:.5px"></div>
@@ -328,8 +330,9 @@ async function saveData() {
 // ── SUBMIT ────────────────────────────────────────────────
 // ── URL VALIDATOR ─────────────────────────────────────────
 function isValidEmbedUrl(url) {
-  // Must match: https://www.canva.com/design/DA.../any-slug/view
-  return /^https:\/\/(www\.)?canva\.com\/design\/[A-Za-z0-9_-]+\/[^?#]*\/view/.test(url.trim());
+  const u = url.trim();
+  return /^https:\/\/(www\.)?canva\.com\/design\/[A-Za-z0-9_-]+\/[^?#]*\/view/.test(u)
+      || /^https:\/\/canva\.link\/[A-Za-z0-9_-]+/.test(u);
 }
 
 document.getElementById('canva-url').addEventListener('input', function() {
@@ -345,14 +348,15 @@ document.getElementById('canva-url').addEventListener('input', function() {
     statusEl.style.background = 'rgba(0,201,177,.1)';
     statusEl.style.border = '1px solid rgba(0,201,177,.3)';
     statusEl.style.color = 'var(--teal)';
-    statusEl.textContent = '✓ Valid Canva link';
+    statusEl.textContent = '✓ Valid Canva public view link';
   } else {
     statusEl.style.display = 'block';
     statusEl.style.background = 'rgba(232,87,58,.1)';
     statusEl.style.border = '1px solid rgba(232,87,58,.3)';
     statusEl.style.color = 'var(--coral)';
     if (url.includes('canva.link')) {
-      statusEl.textContent = '✗ Shortlinks (canva.link) don\'t work here. Use the full URL from Share → Copy link.';
+      // canva.link is valid — this branch won't be reached for valid links
+      statusEl.textContent = '✗ This doesn\'t look like a valid Canva link.';
     } else if (url.includes('canva.com') && !url.includes('/view')) {
       statusEl.textContent = '✗ Almost! Make sure the link ends in /view';
     } else if (url.includes('canva.com')) {
@@ -368,7 +372,7 @@ async function submitPortfolio() {
   const pin = document.getElementById('pin-input').value.trim();
 
   if (!selectedStudent) return showAlert('Please select your name from the list.', 'error');
-  if (!isValidEmbedUrl(url)) return showAlert('Please use the full Canva URL — it must contain canva.com/design/ and end in /view', 'error');
+  if (!isValidEmbedUrl(url)) return showAlert('Please paste your Canva public link — it should start with canva.link or canva.com/design', 'error');
   if (!/^\d{4}$/.test(pin)) return showAlert('PIN must be exactly 4 digits.', 'error');
 
   const id = selectedStudent.name.toLowerCase().replace(/\s+/g,'-').replace(/[^a-z0-9-]/g,'');

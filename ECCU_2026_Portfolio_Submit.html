@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Submit Your Portfolio | ECCU GenAI Camp 2026</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --navy:#0A1628;--navy2:#112240;--coral:#E8573A;--teal:#00C9B1;
+  --gold:#F0A500;--white:#FFFFFF;--gray:#8892A4;--light:#D1D9E6;
+  --fd:'Bebas Neue',sans-serif;--fb:'Inter',sans-serif;--fm:'Space Mono',monospace;
+}
+html,body{min-height:100%;background:var(--navy);color:var(--white);font-family:var(--fb)}
+.header{background:var(--navy2);border-bottom:1px solid rgba(0,201,177,.15);
+  padding:20px 40px;display:flex;align-items:center;justify-content:space-between}
+.header-title{font-family:var(--fd);font-size:28px;color:var(--white)}
+.header-sub{font-family:var(--fm);font-size:9px;letter-spacing:2px;
+  color:var(--teal);text-transform:uppercase;margin-top:2px}
+.gallery-link{font-family:var(--fm);font-size:10px;letter-spacing:1px;
+  color:var(--teal);text-decoration:none;border:1px solid rgba(0,201,177,.3);
+  padding:6px 14px;border-radius:5px;transition:all .2s}
+.gallery-link:hover{background:rgba(0,201,177,.1)}
+
+.main{max-width:600px;margin:0 auto;padding:40px 20px 80px}
+
+/* form card */
+.card{background:var(--navy2);border:1px solid rgba(255,255,255,.08);
+  border-radius:12px;padding:28px 32px;margin-bottom:24px}
+.card-title{font-family:var(--fd);font-size:24px;color:var(--white);margin-bottom:6px}
+.card-sub{font-size:13px;color:var(--gray);margin-bottom:24px;line-height:1.6}
+
+/* fields */
+.field{margin-bottom:20px;position:relative}
+.field label{display:block;font-family:var(--fm);font-size:10px;letter-spacing:2px;
+  text-transform:uppercase;color:var(--gray);margin-bottom:8px}
+.field input{width:100%;background:rgba(255,255,255,.05);
+  border:1px solid rgba(255,255,255,.12);border-radius:7px;
+  padding:12px 16px;font-size:14px;color:var(--white);font-family:var(--fb);
+  transition:border-color .2s;outline:none}
+.field input:focus{border-color:var(--teal)}
+.field input::placeholder{color:var(--gray)}
+.hint{font-size:11px;color:var(--gray);margin-top:6px;line-height:1.5}
+.hint a{color:var(--teal)}
+
+/* autocomplete */
+.ac-wrap{position:relative}
+.ac-list{position:absolute;top:calc(100% + 4px);left:0;right:0;
+  background:var(--navy2);border:1px solid rgba(0,201,177,.3);
+  border-radius:7px;max-height:220px;overflow-y:auto;z-index:50;display:none}
+.ac-list.show{display:block}
+.ac-item{padding:10px 16px;font-size:13px;color:var(--light);cursor:pointer;
+  transition:background .15s;border-bottom:1px solid rgba(255,255,255,.04)}
+.ac-item:last-child{border-bottom:none}
+.ac-item:hover,.ac-item.active{background:rgba(0,201,177,.1);color:var(--white)}
+.ac-item .ac-country{font-size:11px;color:var(--gray);margin-left:6px}
+.ac-item .ac-client{font-family:var(--fm);font-size:9px;letter-spacing:1px;
+  color:var(--teal);display:block;margin-top:2px}
+
+/* pin */
+.pin-wrap{display:flex;gap:10px}
+.pin-wrap input{flex:1;text-align:center;font-size:20px;letter-spacing:8px;
+  font-family:var(--fm)}
+
+/* button */
+.submit-btn{width:100%;padding:14px;background:var(--teal);color:var(--navy);
+  font-family:var(--fd);font-size:20px;letter-spacing:2px;border:none;
+  border-radius:7px;cursor:pointer;transition:all .2s}
+.submit-btn:hover{opacity:.9;transform:translateY(-1px)}
+.submit-btn:disabled{opacity:.4;cursor:not-allowed;transform:none}
+
+/* alerts */
+.alert{border-radius:7px;padding:12px 16px;margin-bottom:20px;
+  font-size:13px;display:none}
+.alert.show{display:block}
+.alert.success{background:rgba(0,201,177,.1);border:1px solid rgba(0,201,177,.3);color:var(--teal)}
+.alert.error{background:rgba(232,87,58,.1);border:1px solid rgba(232,87,58,.3);color:var(--coral)}
+
+/* submitted list */
+.entries-title{font-family:var(--fd);font-size:20px;color:var(--white);margin-bottom:14px}
+.entry{background:var(--navy2);border:1px solid rgba(255,255,255,.07);
+  border-radius:10px;padding:14px 16px;margin-bottom:10px;
+  display:flex;align-items:center;gap:14px}
+.entry-avatar{width:40px;height:40px;border-radius:50%;background:rgba(0,201,177,.15);
+  border:1px solid rgba(0,201,177,.3);display:flex;align-items:center;
+  justify-content:center;font-family:var(--fd);font-size:16px;
+  color:var(--teal);flex-shrink:0}
+.entry-info{flex:1;min-width:0}
+.entry-name{font-size:14px;font-weight:600;color:var(--white);margin-bottom:2px}
+.entry-meta{font-size:11px;color:var(--gray)}
+.entry-link{font-family:var(--fm);font-size:10px;color:var(--teal);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:240px;
+  display:block;margin-top:3px}
+.entry-pills{display:flex;gap:6px;margin-top:5px;flex-wrap:wrap}
+.epill{font-family:var(--fm);font-size:9px;letter-spacing:1px;
+  padding:2px 8px;border-radius:10px}
+.ep-client{background:rgba(0,201,177,.12);color:var(--teal);border:1px solid rgba(0,201,177,.2)}
+.ep-country{background:rgba(255,255,255,.06);color:var(--gray);border:1px solid rgba(255,255,255,.08)}
+.entry-actions{display:flex;gap:6px;flex-shrink:0}
+.act-btn{font-family:var(--fm);font-size:10px;letter-spacing:1px;
+  padding:5px 12px;border-radius:5px;cursor:pointer;transition:all .2s}
+.act-edit{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:var(--light)}
+.act-edit:hover{border-color:var(--teal);color:var(--teal)}
+.act-del{background:rgba(232,87,58,.08);border:1px solid rgba(232,87,58,.2);color:var(--coral)}
+.act-del:hover{background:rgba(232,87,58,.15)}
+
+/* modal */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);
+  z-index:200;display:none;align-items:center;justify-content:center}
+.modal-overlay.show{display:flex}
+.modal{background:var(--navy2);border:1px solid rgba(255,255,255,.12);
+  border-radius:14px;padding:28px 32px;max-width:380px;width:90%}
+.modal-title{font-family:var(--fd);font-size:22px;color:var(--white);margin-bottom:8px}
+.modal-body{font-size:13px;color:var(--gray);margin-bottom:20px;line-height:1.6}
+.modal-actions{display:flex;gap:10px}
+.modal-cancel{flex:1;padding:10px;border-radius:6px;cursor:pointer;
+  background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);
+  color:var(--light);font-family:var(--fm);font-size:11px}
+.modal-confirm{flex:1;padding:10px;border-radius:6px;cursor:pointer;
+  background:var(--coral);border:none;color:var(--white);
+  font-family:var(--fd);font-size:16px;letter-spacing:1px}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <div class="header-title">SUBMIT YOUR PORTFOLIO</div>
+    <div class="header-sub">Kittivisianwood AI Studio · ECCU GenAI Camp 2026</div>
+  </div>
+  <a class="gallery-link" href="ECCU_2026_Portfolio_Gallery.html">View Gallery ↗</a>
+</div>
+
+<div class="main">
+
+  <div class="alert" id="alert"></div>
+
+  <div class="card">
+    <div class="card-title">Add your portfolio</div>
+    <div class="card-sub">
+      Find your name, paste your Canva link, and set a 4-digit PIN.<br>
+      You'll need that PIN to edit or delete your submission later.
+    </div>
+
+    <div class="field">
+      <label>Your name</label>
+      <div class="ac-wrap">
+        <input type="text" id="name-input" placeholder="Start typing your name…" autocomplete="off"/>
+        <div class="ac-list" id="ac-list"></div>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Canva portfolio link</label>
+      <input type="url" id="canva-url" placeholder="https://www.canva.com/design/…"/>
+      <div class="hint">
+        ⚠️ You must use the <strong style="color:var(--teal)">full Canva URL</strong>, not a shortlink.<br><br>
+        In Canva: <strong>Share → Copy link</strong> — it must look like:<br>
+        <code style="color:var(--teal);font-size:10px;word-break:break-all">
+        https://www.canva.com/design/DAxxxxxx/your-title/view</code>
+      </div>
+      <div id="url-status" style="margin-top:8px;font-size:12px;display:none;
+        padding:8px 12px;border-radius:6px;font-family:var(--fm);letter-spacing:.5px"></div>
+    </div>
+
+    <div class="field">
+      <label>Create a 4-digit PIN</label>
+      <input type="password" id="pin-input" maxlength="4"
+        placeholder="····" inputmode="numeric" pattern="[0-9]{4}"/>
+      <div class="hint">Remember this PIN — you'll need it to edit or delete your portfolio later.</div>
+    </div>
+
+    <button class="submit-btn" id="submit-btn" onclick="submitPortfolio()">
+      SAVE PORTFOLIO
+    </button>
+  </div>
+
+  <div id="entries-section" style="display:none">
+    <div class="entries-title">Submitted portfolios</div>
+    <div id="entries-list"></div>
+  </div>
+
+</div>
+
+<!-- Delete confirm modal -->
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <div class="modal-title">Delete portfolio?</div>
+    <div class="modal-body">Enter your 4-digit PIN to confirm. This cannot be undone.</div>
+    <input type="password" id="modal-pin" maxlength="4" inputmode="numeric"
+      pattern="[0-9]{4}" placeholder="····"
+      style="width:100%;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);
+      border-radius:6px;padding:10px 14px;font-size:18px;text-align:center;
+      letter-spacing:8px;color:white;margin-bottom:16px;outline:none;font-family:var(--fm)"/>
+    <div class="modal-actions">
+      <button class="modal-cancel" onclick="closeModal()">Cancel</button>
+      <button class="modal-confirm" onclick="confirmDelete()">DELETE</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const MASTER_KEY   = '$2a$10$YdbExlb2BaD00NW/hIKjcOXwJR/0mx3D/.vsZ62yW6gUFVqNlUQyO';
+const REG_BIN_URL  = 'https://api.jsonbin.io/v3/b/6a4b4286da38895dfe335fe9/latest';
+const JSONBIN_ID   = '6a6c8500f5f4af5e29d9ac40';
+const BIN_URL      = `https://api.jsonbin.io/v3/b/${JSONBIN_ID}`;
+const HEADERS      = {'Content-Type':'application/json','X-Master-Key':MASTER_KEY,'X-Bin-Meta':'false'};
+
+let STUDENTS = [];
+
+async function loadStudents() {
+  try {
+    const res = await fetch(REG_BIN_URL, {
+      headers: {'X-Master-Key': MASTER_KEY, 'X-Bin-Meta': 'false'}
+    });
+    const data = await res.json();
+    const reg = data.registration || data;
+    const CLIENT_LABELS = {
+      eccb: 'ECCB / Credit Bureau',
+      scaspa: 'SCASPA',
+      outsource: 'Outsource Dev Studio',
+      ird: 'IRD Grenada',
+      cub: 'Caribbean Union Bank',
+      irdanguilla: 'IRD Anguilla'
+    };
+    const seen = new Set();
+    const students = [];
+    for (const [clientKey, info] of Object.entries(reg)) {
+      if (!info.members) continue;
+      for (const m of info.members) {
+        const name = (m.fn + ' ' + m.ln).trim();
+        // Normalise — capitalise first letter of each word if all lowercase
+        const normName = name.split(' ').map(w =>
+          w.length > 0 ? w[0].toUpperCase() + w.slice(1) : w
+        ).join(' ');
+        if (!seen.has(normName)) {
+          seen.add(normName);
+          students.push({
+            name: normName,
+            country: m.country || '',
+            client: clientKey,
+            clientLabel: CLIENT_LABELS[clientKey] || clientKey
+          });
+        }
+      }
+    }
+    students.sort((a, b) => a.name.localeCompare(b.name));
+    STUDENTS = students;
+    document.getElementById('name-input').placeholder =
+      `Start typing your name… (${STUDENTS.length} registered students)`;
+  } catch (err) {
+    document.getElementById('name-input').placeholder =
+      'Could not load names — check your connection';
+    console.error('Failed to load student list:', err);
+  }
+}
+
+let selectedStudent = null;
+let portfolios = {};
+let pendingDeleteId = null;
+let editingId = null;
+
+// ── AUTOCOMPLETE ──────────────────────────────────────────
+const nameInput = document.getElementById('name-input');
+const acList    = document.getElementById('ac-list');
+let acIdx = -1;
+
+nameInput.addEventListener('input', () => {
+  const q = nameInput.value.trim().toLowerCase();
+  acList.innerHTML = '';
+  acIdx = -1;
+  if (!q) { acList.classList.remove('show'); selectedStudent = null; return; }
+  const matches = STUDENTS.filter(s => s.name.toLowerCase().includes(q));
+  if (!matches.length) { acList.classList.remove('show'); return; }
+  matches.forEach((s, i) => {
+    const d = document.createElement('div');
+    d.className = 'ac-item';
+    d.innerHTML = `${s.name} <span class="ac-country">${s.country}</span><span class="ac-client">${s.clientLabel}</span>`;
+    d.addEventListener('mousedown', e => { e.preventDefault(); selectStudent(s); });
+    acList.appendChild(d);
+  });
+  acList.classList.add('show');
+});
+
+nameInput.addEventListener('keydown', e => {
+  const items = acList.querySelectorAll('.ac-item');
+  if (e.key === 'ArrowDown') { acIdx = Math.min(acIdx+1, items.length-1); highlight(items); }
+  else if (e.key === 'ArrowUp') { acIdx = Math.max(acIdx-1, 0); highlight(items); }
+  else if (e.key === 'Enter' && acIdx >= 0) { items[acIdx].dispatchEvent(new MouseEvent('mousedown')); }
+  else if (e.key === 'Escape') { acList.classList.remove('show'); }
+});
+
+function highlight(items) {
+  items.forEach((el,i) => el.classList.toggle('active', i === acIdx));
+  if (items[acIdx]) items[acIdx].scrollIntoView({block:'nearest'});
+}
+
+document.addEventListener('click', e => {
+  if (!e.target.closest('.ac-wrap')) acList.classList.remove('show');
+});
+
+function selectStudent(s) {
+  selectedStudent = s;
+  nameInput.value = s.name;
+  acList.classList.remove('show');
+}
+
+// ── DATA ──────────────────────────────────────────────────
+async function loadData() {
+  try {
+    const res = await fetch(BIN_URL + '/latest', {headers: {'X-Master-Key': MASTER_KEY, 'X-Bin-Meta': 'false'}});
+    if (!res.ok) throw new Error('empty');
+    portfolios = await res.json();
+    if (typeof portfolios !== 'object' || Array.isArray(portfolios)) portfolios = {};
+  } catch { portfolios = {}; }
+  renderEntries();
+}
+
+async function saveData() {
+  await fetch(BIN_URL, {
+    method: 'PUT',
+    headers: HEADERS,
+    body: JSON.stringify(portfolios)
+  });
+}
+
+// ── SUBMIT ────────────────────────────────────────────────
+// ── URL VALIDATOR ─────────────────────────────────────────
+function isValidEmbedUrl(url) {
+  // Must match: https://www.canva.com/design/DA.../any-slug/view
+  return /^https:\/\/(www\.)?canva\.com\/design\/[A-Za-z0-9_-]+\/[^?#]*\/view/.test(url.trim());
+}
+
+document.getElementById('canva-url').addEventListener('input', function() {
+  const url = this.value.trim();
+  const statusEl = document.getElementById('url-status');
+  const btn = document.getElementById('submit-btn');
+  if (!url) {
+    statusEl.style.display = 'none';
+    return;
+  }
+  if (isValidEmbedUrl(url)) {
+    statusEl.style.display = 'block';
+    statusEl.style.background = 'rgba(0,201,177,.1)';
+    statusEl.style.border = '1px solid rgba(0,201,177,.3)';
+    statusEl.style.color = 'var(--teal)';
+    statusEl.textContent = '✓ Valid Canva link';
+  } else {
+    statusEl.style.display = 'block';
+    statusEl.style.background = 'rgba(232,87,58,.1)';
+    statusEl.style.border = '1px solid rgba(232,87,58,.3)';
+    statusEl.style.color = 'var(--coral)';
+    if (url.includes('canva.link')) {
+      statusEl.textContent = '✗ Shortlinks (canva.link) don\'t work here. Use the full URL from Share → Copy link.';
+    } else if (url.includes('canva.com') && !url.includes('/view')) {
+      statusEl.textContent = '✗ Almost! Make sure the link ends in /view';
+    } else if (url.includes('canva.com')) {
+      statusEl.textContent = "✗ This doesn't look like a Canva URL. It must contain canva.com/design/";
+    } else {
+      statusEl.textContent = "✗ This doesn't look like a Canva URL.";
+    }
+  }
+});
+
+async function submitPortfolio() {
+  const url = document.getElementById('canva-url').value.trim();
+  const pin = document.getElementById('pin-input').value.trim();
+
+  if (!selectedStudent) return showAlert('Please select your name from the list.', 'error');
+  if (!isValidEmbedUrl(url)) return showAlert('Please use the full Canva URL — it must contain canva.com/design/ and end in /view', 'error');
+  if (!/^\d{4}$/.test(pin)) return showAlert('PIN must be exactly 4 digits.', 'error');
+
+  const id = selectedStudent.name.toLowerCase().replace(/\s+/g,'-').replace(/[^a-z0-9-]/g,'');
+
+  if (portfolios[id] && !editingId) {
+    return showAlert('A portfolio already exists for this name. Use the Edit button to update it.', 'error');
+  }
+
+  if (editingId && portfolios[editingId]) {
+    if (portfolios[editingId].pin !== pin) return showAlert('Incorrect PIN.', 'error');
+  }
+
+  const btn = document.getElementById('submit-btn');
+  btn.disabled = true; btn.textContent = 'SAVING…';
+
+  portfolios[id] = {
+    name: selectedStudent.name,
+    country: selectedStudent.country,
+    client: selectedStudent.client,
+    clientLabel: selectedStudent.clientLabel,
+    url: url,
+    pin: pin,
+    submitted: Date.now()
+  };
+
+  await saveData();
+  btn.disabled = false; btn.textContent = 'SAVE PORTFOLIO';
+  editingId = null;
+  // Redirect to gallery — ?submitted=1 triggers the welcome banner
+  window.location.href = 'ECCU_2026_Portfolio_Gallery.html?submitted=1';
+}
+
+// ── RENDER ENTRIES ────────────────────────────────────────
+function renderEntries() {
+  const list = document.getElementById('entries-list');
+  const section = document.getElementById('entries-section');
+  const entries = Object.entries(portfolios);
+  if (!entries.length) { section.style.display = 'none'; return; }
+  section.style.display = 'block';
+  list.innerHTML = '';
+  entries.sort((a,b) => a[1].name.localeCompare(b[1].name)).forEach(([id, p]) => {
+    const initials = p.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+    const div = document.createElement('div');
+    div.className = 'entry';
+    div.innerHTML = `
+      <div class="entry-avatar">${initials}</div>
+      <div class="entry-info">
+        <div class="entry-name">${p.name}</div>
+        <div class="entry-meta">${p.country}</div>
+        <a class="entry-link" href="${p.url}" target="_blank">${p.url.replace('https://','')}</a>
+        <div class="entry-pills">
+          <span class="epill ep-client">${p.clientLabel}</span>
+        </div>
+      </div>
+      <div class="entry-actions">
+        <button class="act-btn act-edit" onclick="startEdit('${id}')">Edit</button>
+        <button class="act-btn act-del" onclick="startDelete('${id}')">Delete</button>
+      </div>
+    `;
+    list.appendChild(div);
+  });
+}
+
+// ── EDIT ──────────────────────────────────────────────────
+function startEdit(id) {
+  const p = portfolios[id];
+  if (!p) return;
+  editingId = id;
+  const s = STUDENTS.find(s => s.name === p.name);
+  if (s) { selectedStudent = s; nameInput.value = s.name; }
+  document.getElementById('canva-url').value = p.url;
+  document.getElementById('pin-input').value = '';
+  document.getElementById('pin-input').placeholder = 'Enter your PIN to confirm edit';
+  window.scrollTo({top:0,behavior:'smooth'});
+  showAlert('Editing your portfolio — update the link and enter your PIN, then save.', 'success');
+}
+
+// ── DELETE ────────────────────────────────────────────────
+function startDelete(id) {
+  pendingDeleteId = id;
+  document.getElementById('modal-pin').value = '';
+  document.getElementById('modal').classList.add('show');
+}
+function closeModal() {
+  document.getElementById('modal').classList.remove('show');
+  pendingDeleteId = null;
+}
+async function confirmDelete() {
+  const pin = document.getElementById('modal-pin').value.trim();
+  const p = portfolios[pendingDeleteId];
+  if (!p) return closeModal();
+  if (p.pin !== pin) {
+    document.getElementById('modal-pin').style.borderColor = '#E8573A';
+    setTimeout(() => document.getElementById('modal-pin').style.borderColor = '', 1000);
+    return;
+  }
+  delete portfolios[pendingDeleteId];
+  await saveData();
+  closeModal();
+  showAlert('Portfolio deleted.', 'error');
+  renderEntries();
+}
+
+// ── ALERT ─────────────────────────────────────────────────
+function showAlert(msg, type) {
+  const el = document.getElementById('alert');
+  el.textContent = msg;
+  el.className = `alert ${type} show`;
+  setTimeout(() => el.classList.remove('show'), 4000);
+}
+
+loadStudents();
+loadData();
+</script>
+</body>
+</html>

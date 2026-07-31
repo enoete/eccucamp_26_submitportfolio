@@ -226,28 +226,33 @@ async function loadStudents() {
       cub: 'Caribbean Union Bank',
       irdanguilla: 'IRD Anguilla'
     };
-    const seen = new Set();
-    const students = [];
+    // Build a map of name -> {country, clients[], clientLabels[]}
+    // so students in multiple teams get all their clients stored
+    const studentMap = {};
     for (const [clientKey, info] of Object.entries(reg)) {
       if (!info.members) continue;
       for (const m of info.members) {
         const name = (m.fn + ' ' + m.ln).trim();
-        // Normalise — capitalise first letter of each word if all lowercase
         const normName = name.split(' ').map(w =>
           w.length > 0 ? w[0].toUpperCase() + w.slice(1) : w
         ).join(' ');
-        if (!seen.has(normName)) {
-          seen.add(normName);
-          students.push({
+        if (!studentMap[normName]) {
+          studentMap[normName] = {
             name: normName,
             country: m.country || '',
-            client: clientKey,
-            clientLabel: CLIENT_LABELS[clientKey] || clientKey
-          });
+            clients: [],
+            clientLabels: []
+          };
+        }
+        const label = CLIENT_LABELS[clientKey] || clientKey;
+        if (!studentMap[normName].clients.includes(clientKey)) {
+          studentMap[normName].clients.push(clientKey);
+          studentMap[normName].clientLabels.push(label);
         }
       }
     }
-    students.sort((a, b) => a.name.localeCompare(b.name));
+    const students = Object.values(studentMap)
+      .sort((a, b) => a.name.localeCompare(b.name));
     STUDENTS = students;
     document.getElementById('name-input').placeholder =
       `Start typing your name… (${STUDENTS.length} registered students)`;
@@ -278,7 +283,7 @@ nameInput.addEventListener('input', () => {
   matches.forEach((s, i) => {
     const d = document.createElement('div');
     d.className = 'ac-item';
-    d.innerHTML = `${s.name} <span class="ac-country">${s.country}</span><span class="ac-client">${s.clientLabel}</span>`;
+    d.innerHTML = `${s.name} <span class="ac-country">${s.country}</span><span class="ac-client">${s.clientLabels.join(', ')}</span>`;
     d.addEventListener('mousedown', e => { e.preventDefault(); selectStudent(s); });
     acList.appendChild(d);
   });
@@ -320,6 +325,20 @@ async function loadData() {
 }
 
 async function saveData() {
+  // Re-fetch latest before writing to prevent race condition overwriting other submissions
+  try {
+    const latest = await fetch(BIN_URL + '/latest', {
+      headers: {'X-Master-Key': MASTER_KEY, 'X-Bin-Meta': 'false'}
+    });
+    if (latest.ok) {
+      const latestData = await latest.json();
+      if (typeof latestData === 'object' && !Array.isArray(latestData)) {
+        // Merge: latest bin wins for other keys, our changes win for our key
+        portfolios = Object.assign({}, latestData, portfolios);
+      }
+    }
+  } catch { /* proceed with what we have */ }
+
   await fetch(BIN_URL, {
     method: 'PUT',
     headers: HEADERS,
@@ -391,8 +410,8 @@ async function submitPortfolio() {
   portfolios[id] = {
     name: selectedStudent.name,
     country: selectedStudent.country,
-    client: selectedStudent.client,
-    clientLabel: selectedStudent.clientLabel,
+    clients: selectedStudent.clients,
+    clientLabels: selectedStudent.clientLabels,
     url: url,
     pin: pin,
     submitted: Date.now()
@@ -424,7 +443,7 @@ function renderEntries() {
         <div class="entry-meta">${p.country}</div>
         <a class="entry-link" href="${p.url}" target="_blank">${p.url.replace('https://','')}</a>
         <div class="entry-pills">
-          <span class="epill ep-client">${p.clientLabel}</span>
+          ${(p.clientLabels || [p.clientLabel]).map(l => `<span class="epill ep-client">${l}</span>`).join('')}
         </div>
       </div>
       <div class="entry-actions">
